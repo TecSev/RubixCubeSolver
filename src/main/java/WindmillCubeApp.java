@@ -410,6 +410,7 @@ public class WindmillCubeApp extends Application {
         Translate t = new Translate();
         int lx, ly, lz; 
         final int startX, startY, startZ;
+        final int id; // Unique ID for tracking (0-26)
         
         // 0:U, 1:R, 2:F, 3:D, 4:L, 5:B
         Color[] faceColors = new Color[6]; 
@@ -418,7 +419,10 @@ public class WindmillCubeApp extends Application {
         public Cubie(double size, int x, int y, int z) {
             this.lx = x; this.ly = y; this.lz = z;
             this.startX = x; this.startY = y; this.startZ = z;
-            
+            // ID based on initial grid position: (z+1)*9 + (y+1)*3 + (x+1)
+            // Maps (-1,-1,-1) to 0, (1,1,1) to 26
+            this.id = (z + 1) * 9 + (y + 1) * 3 + (x + 1);
+
             t.setX(x * (size + GAP));
             t.setY(y * (size + GAP));
             t.setZ(z * (size + GAP));
@@ -472,37 +476,6 @@ public class WindmillCubeApp extends Application {
             }
         }
 
-        public void updateFaceColors(String axis, double angle) {
-             int dir = (angle > 0) ? 1 : -1;
-             // 0:U, 1:R, 2:F, 3:D, 4:L, 5:B
-             if (axis.equals("X")) {
-                 if (dir == 1) cycleFaces(0, 2, 3, 5); // U->F->D->B
-                 else cycleFaces(0, 5, 3, 2);          // U->B->D->F
-             } else if (axis.equals("Y")) {
-                 if (dir == 1) cycleFaces(1, 2, 4, 5); // R->F->L->B
-                 else cycleFaces(1, 5, 4, 2);          // R->B->L->F
-             } else if (axis.equals("Z")) {
-                 if (dir == 1) cycleFaces(0, 1, 3, 4); // U->R->D->L
-                 else cycleFaces(0, 4, 3, 1);          // U->L->D->R
-             }
-        }
-
-        private void cycleFaces(int a, int b, int c, int d) {
-            Color tColor = faceColors[d];
-            Box tBox = faceNodes[d];
-
-            faceColors[d] = faceColors[c];
-            faceNodes[d] = faceNodes[c];
-
-            faceColors[c] = faceColors[b];
-            faceNodes[c] = faceNodes[b];
-
-            faceColors[b] = faceColors[a];
-            faceNodes[b] = faceNodes[a];
-
-            faceColors[a] = tColor;
-            faceNodes[a] = tBox;
-        }
         
         // Helper just to silence compiler, logic is inline above
       
@@ -699,11 +672,9 @@ public class WindmillCubeApp extends Application {
             for(Cubie c : targetCubies) {
                 // A. Update Logical Grid (Use strict Logical Angle)
                 c.updateCoordinates(axisForLogic, angleForLogic);
-                c.updateFaceColors(axisForLogic, angleForLogic);
 
                 if(isDouble) {
                     c.updateCoordinates(axisForLogic, angleForLogic);
-                    c.updateFaceColors(axisForLogic, angleForLogic);
                 }
 
                 // --- DELETE SECTION B (Update Physical Position) ---
