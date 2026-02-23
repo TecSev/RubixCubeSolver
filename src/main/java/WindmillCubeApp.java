@@ -33,7 +33,23 @@ public class WindmillCubeApp extends Application {
     private double animationSpeed = 250.0; // Default: 250ms per turn
     @Override
     public void start(Stage stage) {
-    	new Thread(() -> cs.min2phase.Search.init()).start();
+	new Thread(() -> {
+            try {
+                cs.min2phase.Search.init();
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Initialization Error");
+                    alert.setHeaderText("Solver Initialization Failed");
+                    alert.setContentText("The solver engine failed to initialize. Solving functionality will be unavailable.\n\nError: " + e.getMessage());
+                    alert.showAndWait();
+                    if (consoleLog != null) {
+                        log("CRITICAL ERROR: Solver initialization failed: " + e.getMessage());
+                    }
+                });
+            }
+        }).start();
         // 1. Setup 3D Scene
         cubeGroup = buildCube();
         SubScene subScene = create3DSubScene(cubeGroup);
