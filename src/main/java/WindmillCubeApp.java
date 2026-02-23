@@ -10,6 +10,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
 import javafx.scene.transform.Rotate;
+import javafx.scene.transform.Transform;
 import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -294,16 +295,39 @@ public class WindmillCubeApp extends Application {
     private char getVisibleFaceColor(Cubie c, Point3D scanDirection) {
         if (c == null) return '?';
         
-        // Determine which face index matches the scan direction
+        // Transform the global scan direction into the Cubie's local coordinate system
+        Point3D localDir = scanDirection;
+        try {
+            // Iterate transforms in reverse order to apply inverse logic correctly
+            // (Last applied transform must be undone first)
+            for (int i = c.getTransforms().size() - 1; i >= 0; i--) {
+                Transform t = c.getTransforms().get(i);
+                localDir = t.inverseDeltaTransform(localDir);
+            }
+        } catch (javafx.scene.transform.NonInvertibleTransformException e) {
+            e.printStackTrace();
+            return 'X'; // Should not happen for Rotations/Translations
+        }
+
+        // Determine which face index matches the LOCAL scan direction
+        // We find the axis with the largest component magnitude
         int faceIndex = -1;
         
+        double absX = Math.abs(localDir.getX());
+        double absY = Math.abs(localDir.getY());
+        double absZ = Math.abs(localDir.getZ());
+
         // Note: JavaFX Y is Down (-1 is Up). Z is Back (-1 is Front).
-        if (scanDirection.getY() < -0.5) faceIndex = 0; // Up
-        else if (scanDirection.getX() > 0.5)  faceIndex = 1; // Right
-        else if (scanDirection.getZ() < -0.5) faceIndex = 2; // Front
-        else if (scanDirection.getY() > 0.5)  faceIndex = 3; // Down
-        else if (scanDirection.getX() < -0.5) faceIndex = 4; // Left
-        else if (scanDirection.getZ() > 0.5)  faceIndex = 5; // Back
+        if (absY > absX && absY > absZ) {
+            if (localDir.getY() < 0) faceIndex = 0; // Up (-Y)
+            else faceIndex = 3;                     // Down (+Y)
+        } else if (absX > absY && absX > absZ) {
+            if (localDir.getX() > 0) faceIndex = 1; // Right (+X)
+            else faceIndex = 4;                     // Left (-X)
+        } else {
+            if (localDir.getZ() < 0) faceIndex = 2; // Front (-Z)
+            else faceIndex = 5;                     // Back (+Z)
+        }
         
         if (faceIndex >= 0) {
             return colorToChar(c.faceColors[faceIndex]);
