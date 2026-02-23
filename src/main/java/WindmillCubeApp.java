@@ -1,6 +1,7 @@
 import javafx.animation.*;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.geometry.Point3D;
 import javafx.scene.*;
 import javafx.scene.control.*;
@@ -485,30 +486,50 @@ public class WindmillCubeApp extends Application {
         }
 
         log("Computing solution...");
-        
-        // 3. Run the Min2Phase Solver
-        // solution(state, maxDepth, timeOut, 0, 0)
-        String solution = new Search().solution(cubeString, 21, 100000000, 0, 0);
-        
-        // 4. Check for Solver Errors
-        if (solution.startsWith("Error")) {
-            log("SOLVER ERROR: " + solution);
-            log("Check that you have exactly 9 of each color.");
-            return;
-        }
+        isAnimating = true;
 
-        // 5. Build Final Algorithm (Standard + Windmill Fixes)
-        StringBuilder finalAlgorithm = new StringBuilder(solution);
-        
-        if (cubeTypeSelector.getValue().equals("Windmill 3x3")) {
-            log("Mode: Windmill 3x3. Checking centers...");
-            // We append a comment for the user to see in the text box
-            finalAlgorithm.append(" [Check Centers]");
-        }
+        final String currentCubeType = cubeTypeSelector.getValue();
 
-        log("Solution Found: " + solution);
-        algorithmDisplay.setText(finalAlgorithm.toString());
-        animateSequence(finalAlgorithm.toString());
+        Task<String> solverTask = new Task<String>() {
+            @Override
+            protected String call() throws Exception {
+                // 3. Run the Min2Phase Solver
+                // solution(state, maxDepth, timeOut, 0, 0)
+                return new Search().solution(cubeString, 21, 100000000, 0, 0);
+            }
+        };
+
+        solverTask.setOnSucceeded(e -> {
+            String solution = solverTask.getValue();
+
+            // 4. Check for Solver Errors
+            if (solution.startsWith("Error")) {
+                log("SOLVER ERROR: " + solution);
+                log("Check that you have exactly 9 of each color.");
+                isAnimating = false;
+                return;
+            }
+
+            // 5. Build Final Algorithm (Standard + Windmill Fixes)
+            StringBuilder finalAlgorithm = new StringBuilder(solution);
+
+            if (currentCubeType.equals("Windmill 3x3")) {
+                log("Mode: Windmill 3x3. Checking centers...");
+                // We append a comment for the user to see in the text box
+                finalAlgorithm.append(" [Check Centers]");
+            }
+
+            log("Solution Found: " + solution);
+            algorithmDisplay.setText(finalAlgorithm.toString());
+            animateSequence(finalAlgorithm.toString());
+        });
+
+        solverTask.setOnFailed(e -> {
+            log("Solver failed: " + solverTask.getException().getMessage());
+            isAnimating = false;
+        });
+
+        new Thread(solverTask).start();
     }
 
     private void animateSequence(String seq) {
