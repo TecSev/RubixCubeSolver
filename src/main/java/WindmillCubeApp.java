@@ -27,7 +27,7 @@ public class WindmillCubeApp extends Application {
     // UI Controls
     private ComboBox<String> cubeTypeSelector;
     private TextArea algorithmDisplay;
-    private final Queue<String> moveQueue = new LinkedList<>();
+    private final Queue<String> moveQueue = new ArrayDeque<>();
     private boolean isPaintMode = false;
     private Color currentPaintColor = Color.WHITE;
     private double animationSpeed = 250.0; // Default: 250ms per turn
