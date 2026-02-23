@@ -565,9 +565,6 @@ public class WindmillCubeApp extends Application {
         // This means Y and Z visual rotations might need to be flipped to match the logic.
         double visualAngle = logicalAngle;
         
-        // Fix Y-Axis Visuals (U/D/E) -> JavaFX Y is inverted vs Standard Math Y
-        if (rotAxis.equals("Y")) visualAngle *= -1;
-
         // 4. Select Cubies
         // Determine layer: -1 (Top/Left/Front), 1 (Bottom/Right/Back), 0 (Middle)
         int layer = 0;
