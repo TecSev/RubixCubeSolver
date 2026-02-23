@@ -150,7 +150,7 @@ class Util {
         }
 
         public String toString() {
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
             int urf = (verbose & Search.INVERSE_SOLUTION) != 0 ? (urfIdx + 3) % 6 : urfIdx;
             if (urf < 3) {
                 for (int s = 0; s < length; s++) {
