@@ -1,6 +1,7 @@
 package cs.min2phase;
 
 import java.util.Random;
+import java.security.SecureRandom;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -10,7 +11,7 @@ import java.io.IOException;
  */
 public class Tools {
 
-    private static Random gen = new Random();
+    private static Random gen = new SecureRandom();
 
     private static void read(char[] arr, DataInput in) throws IOException {
         for (int i = 0; i < arr.length; i++) {
