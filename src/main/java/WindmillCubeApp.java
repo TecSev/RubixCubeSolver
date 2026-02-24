@@ -384,15 +384,32 @@ public class WindmillCubeApp extends Application {
 
             double s = size / 2;
             
-            // Create Physical Faces using logicalCubie colors
-            faceNodes[0] = createFace(logicalCubie.faceColors[0], 0, -s, 0, Rotate.X_AXIS, 90);   // U
-            faceNodes[1] = createFace(logicalCubie.faceColors[1], s, 0, 0, Rotate.Y_AXIS, 90);    // R
-            faceNodes[2] = createFace(logicalCubie.faceColors[2], 0, 0, -s, Rotate.Y_AXIS, 0);    // F
-            faceNodes[3] = createFace(logicalCubie.faceColors[3], 0, s, 0, Rotate.X_AXIS, 90);    // D
-            faceNodes[4] = createFace(logicalCubie.faceColors[4], -s, 0, 0, Rotate.Y_AXIS, 90);   // L
-            faceNodes[5] = createFace(logicalCubie.faceColors[5], 0, 0, s, Rotate.Y_AXIS, 0);     // B
+            // --- FIX: Initialize all faces to BLACK (Internal Plastic) ---
+            Arrays.fill(faceColors, Color.BLACK);
+
+            // --- Only Paint the Outer Faces based on Position ---
+            // U=Yellow, D=White, F=Blue, B=Green, R=Red, L=Orange
             
-            getChildren().addAll(faceNodes);
+            if (y == -1) faceColors[0] = Color.YELLOW; // Top Layer -> Paint Up Face
+            if (x == 1)  faceColors[1] = Color.RED;    // Right Layer -> Paint Right Face
+            if (z == -1) faceColors[2] = Color.BLUE;   // Front Layer -> Paint Front Face
+            if (y == 1)  faceColors[3] = Color.WHITE;  // Bottom Layer -> Paint Down Face
+            if (x == -1) faceColors[4] = Color.ORANGE; // Left Layer -> Paint Left Face
+            if (z == 1)  faceColors[5] = Color.GREEN;  // Back Layer -> Paint Back Face
+
+            // Create Physical Faces
+            if (faceColors[0] != Color.BLACK) faceNodes[0] = createFace(faceColors[0], 0, -s, 0, Rotate.X_AXIS, 90);   // U
+            if (faceColors[1] != Color.BLACK) faceNodes[1] = createFace(faceColors[1], s, 0, 0, Rotate.Y_AXIS, 90);    // R
+            if (faceColors[2] != Color.BLACK) faceNodes[2] = createFace(faceColors[2], 0, 0, -s, Rotate.Y_AXIS, 0);    // F
+            if (faceColors[3] != Color.BLACK) faceNodes[3] = createFace(faceColors[3], 0, s, 0, Rotate.X_AXIS, 90);    // D
+            if (faceColors[4] != Color.BLACK) faceNodes[4] = createFace(faceColors[4], -s, 0, 0, Rotate.Y_AXIS, 90);   // L
+            if (faceColors[5] != Color.BLACK) faceNodes[5] = createFace(faceColors[5], 0, 0, s, Rotate.Y_AXIS, 0);     // B
+            
+            for (Box node : faceNodes) {
+                if (node != null) {
+                    getChildren().add(node);
+                }
+            }
         }
         
         public void updateCoordinates(String axis, double angle) {
