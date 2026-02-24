@@ -598,11 +598,9 @@ public class WindmillCubeApp extends Application {
             for(Cubie c : targetCubies) {
                 // A. Update Logical Grid (Use strict Logical Angle)
                 c.updateCoordinates(axisForLogic, angleForLogic);
-                c.updateFaceColors(axisForLogic, angleForLogic);
 
                 if(isDouble) {
                     c.updateCoordinates(axisForLogic, angleForLogic);
-                    c.updateFaceColors(axisForLogic, angleForLogic);
                 }
 
                 // --- DELETE SECTION B (Update Physical Position) ---
