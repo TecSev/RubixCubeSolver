@@ -136,7 +136,7 @@ public class WindmillCubeApp extends Application {
                     for (int i = 0; i < 6; i++) {
                         // We look for which Cubie owns this specific 3D Box
                         if (c.faceNodes[i] == face) {
-                            c.faceColors[i] = currentPaintColor; // Update the memory
+                            c.logicalCubie.faceColors[i] = currentPaintColor; // Update the memory
                             found = true;
                             break;
                         }
@@ -285,7 +285,7 @@ public class WindmillCubeApp extends Application {
     }
     private Cubie getCubieAt(int x, int y, int z) {
         for (Cubie c : cubies.values()) {
-            if (c.lx == x && c.ly == y && c.lz == z) {
+            if (c.logicalCubie.lx == x && c.logicalCubie.ly == y && c.logicalCubie.lz == z) {
                 return c;
             }
         }
@@ -294,45 +294,7 @@ public class WindmillCubeApp extends Application {
  // 0:U, 1:R, 2:F, 3:D, 4:L, 5:B
     private char getVisibleFaceColor(Cubie c, Point3D scanDirection) {
         if (c == null) return '?';
-        
-        // Transform the global scan direction into the Cubie's local coordinate system
-        Point3D localDir = scanDirection;
-        try {
-            // Iterate transforms in reverse order to apply inverse logic correctly
-            // (Last applied transform must be undone first)
-            for (int i = c.getTransforms().size() - 1; i >= 0; i--) {
-                Transform t = c.getTransforms().get(i);
-                localDir = t.inverseDeltaTransform(localDir);
-            }
-        } catch (javafx.scene.transform.NonInvertibleTransformException e) {
-            e.printStackTrace();
-            return 'X'; // Should not happen for Rotations/Translations
-        }
-
-        // Determine which face index matches the LOCAL scan direction
-        // We find the axis with the largest component magnitude
-        int faceIndex = -1;
-        
-        double absX = Math.abs(localDir.getX());
-        double absY = Math.abs(localDir.getY());
-        double absZ = Math.abs(localDir.getZ());
-
-        // Note: JavaFX Y is Down (-1 is Up). Z is Back (-1 is Front).
-        if (absY > absX && absY > absZ) {
-            if (localDir.getY() < 0) faceIndex = 0; // Up (-Y)
-            else faceIndex = 3;                     // Down (+Y)
-        } else if (absX > absY && absX > absZ) {
-            if (localDir.getX() > 0) faceIndex = 1; // Right (+X)
-            else faceIndex = 4;                     // Left (-X)
-        } else {
-            if (localDir.getZ() < 0) faceIndex = 2; // Front (-Z)
-            else faceIndex = 5;                     // Back (+Z)
-        }
-        
-        if (faceIndex >= 0) {
-            return colorToChar(c.faceColors[faceIndex]);
-        }
-        return '?';
+        return c.logicalCubie.getVisibleFaceColor(scanDirection);
     }
 
     private char colorToChar(Color c) {
@@ -408,21 +370,13 @@ public class WindmillCubeApp extends Application {
     // --- LOGIC CLASS ---
     private class Cubie extends Group {
         Translate t = new Translate();
-        int lx, ly, lz; 
-        final int startX, startY, startZ;
-        final int id; // Unique ID for tracking (0-26)
+        LogicalCubie logicalCubie;
         
-        // 0:U, 1:R, 2:F, 3:D, 4:L, 5:B
-        Color[] faceColors = new Color[6]; 
         Box[] faceNodes = new Box[6]; // Keep track of physical boxes to paint them
 
         public Cubie(double size, int x, int y, int z) {
-            this.lx = x; this.ly = y; this.lz = z;
-            this.startX = x; this.startY = y; this.startZ = z;
-            // ID based on initial grid position: (z+1)*9 + (y+1)*3 + (x+1)
-            // Maps (-1,-1,-1) to 0, (1,1,1) to 26
-            this.id = (z + 1) * 9 + (y + 1) * 3 + (x + 1);
-
+            this.logicalCubie = new LogicalCubie(x, y, z);
+            
             t.setX(x * (size + GAP));
             t.setY(y * (size + GAP));
             t.setZ(z * (size + GAP));
@@ -430,52 +384,24 @@ public class WindmillCubeApp extends Application {
 
             double s = size / 2;
             
-            // --- FIX: Initialize all faces to BLACK (Internal Plastic) ---
-            Arrays.fill(faceColors, Color.BLACK);
-
-            // --- Only Paint the Outer Faces based on Position ---
-            // U=Yellow, D=White, F=Blue, B=Green, R=Red, L=Orange
-            
-            if (y == -1) faceColors[0] = Color.YELLOW; // Top Layer -> Paint Up Face
-            if (x == 1)  faceColors[1] = Color.RED;    // Right Layer -> Paint Right Face
-            if (z == -1) faceColors[2] = Color.BLUE;   // Front Layer -> Paint Front Face
-            if (y == 1)  faceColors[3] = Color.WHITE;  // Bottom Layer -> Paint Down Face
-            if (x == -1) faceColors[4] = Color.ORANGE; // Left Layer -> Paint Left Face
-            if (z == 1)  faceColors[5] = Color.GREEN;  // Back Layer -> Paint Back Face
-
-            // Create Physical Faces
-            faceNodes[0] = createFace(faceColors[0], 0, -s, 0, Rotate.X_AXIS, 90);   // U
-            faceNodes[1] = createFace(faceColors[1], s, 0, 0, Rotate.Y_AXIS, 90);    // R
-            faceNodes[2] = createFace(faceColors[2], 0, 0, -s, Rotate.Y_AXIS, 0);    // F
-            faceNodes[3] = createFace(faceColors[3], 0, s, 0, Rotate.X_AXIS, 90);    // D
-            faceNodes[4] = createFace(faceColors[4], -s, 0, 0, Rotate.Y_AXIS, 90);   // L
-            faceNodes[5] = createFace(faceColors[5], 0, 0, s, Rotate.Y_AXIS, 0);     // B
+            // Create Physical Faces using logicalCubie colors
+            faceNodes[0] = createFace(logicalCubie.faceColors[0], 0, -s, 0, Rotate.X_AXIS, 90);   // U
+            faceNodes[1] = createFace(logicalCubie.faceColors[1], s, 0, 0, Rotate.Y_AXIS, 90);    // R
+            faceNodes[2] = createFace(logicalCubie.faceColors[2], 0, 0, -s, Rotate.Y_AXIS, 0);    // F
+            faceNodes[3] = createFace(logicalCubie.faceColors[3], 0, s, 0, Rotate.X_AXIS, 90);    // D
+            faceNodes[4] = createFace(logicalCubie.faceColors[4], -s, 0, 0, Rotate.Y_AXIS, 90);   // L
+            faceNodes[5] = createFace(logicalCubie.faceColors[5], 0, 0, s, Rotate.Y_AXIS, 0);     // B
             
             getChildren().addAll(faceNodes);
         }
         
         public void updateCoordinates(String axis, double angle) {
-            int dir = (angle > 0) ? 1 : -1;
-            int oldX = lx; int oldY = ly; int oldZ = lz;
-
-            // Update only the LOGICAL position. 
-            // The Visual position is handled by the Transforms chain.
-            switch (axis) {
-                case "X": 
-                    ly = (dir==1)? -oldZ : oldZ; 
-                    lz = (dir==1)? oldY : -oldY; 
-                    break;
-                case "Y": 
-                    lx = (dir==1)? oldZ : -oldZ; 
-                    lz = (dir==1)? -oldX : oldX; 
-                    break;
-                case "Z": 
-                    lx = (dir==1)? -oldY : oldY; 
-                    ly = (dir==1)? oldX : -oldX; 
-                    break;
-            }
+            logicalCubie.updateCoordinates(axis, angle);
         }
 
+        public void updateFaceColors(String axis, double angle) {
+            logicalCubie.updateFaceColors(axis, angle);
+        }
         
         // Helper just to silence compiler, logic is inline above
       
@@ -639,9 +565,9 @@ public class WindmillCubeApp extends Application {
 
         List<Cubie> targetCubies = new ArrayList<>();
         for (Cubie c : cubies.values()) {
-            if (rotAxis.equals("X") && c.lx == layer) targetCubies.add(c);
-            if (rotAxis.equals("Y") && c.ly == layer) targetCubies.add(c);
-            if (rotAxis.equals("Z") && c.lz == layer) targetCubies.add(c);
+            if (rotAxis.equals("X") && c.logicalCubie.lx == layer) targetCubies.add(c);
+            if (rotAxis.equals("Y") && c.logicalCubie.ly == layer) targetCubies.add(c);
+            if (rotAxis.equals("Z") && c.logicalCubie.lz == layer) targetCubies.add(c);
         }
 
         if(targetCubies.isEmpty()) {
@@ -683,7 +609,9 @@ public class WindmillCubeApp extends Application {
 
                 // C. Update Orientation
                 // Use 'finalVisualAngle' here instead of 'visualAngle'
-                c.getTransforms().add(new Rotate(finalVisualAngle, rt.getAxis()));
+                Rotate r = new Rotate(finalVisualAngle, rt.getAxis());
+                c.getTransforms().add(r);
+                c.logicalCubie.addTransform(r);
             }
             
             cubeGroup.getChildren().remove(rotationGroup);
@@ -698,7 +626,7 @@ public class WindmillCubeApp extends Application {
 
     private boolean checkSolved() {
         for (Cubie c : cubies.values()) {
-            if (c.lx != c.startX || c.ly != c.startY || c.lz != c.startZ) return false;
+            if (c.logicalCubie.lx != c.logicalCubie.startX || c.logicalCubie.ly != c.logicalCubie.startY || c.logicalCubie.lz != c.logicalCubie.startZ) return false;
         }
         return true;
     }
